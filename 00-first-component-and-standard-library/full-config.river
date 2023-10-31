@@ -6,6 +6,8 @@ prometheus.exporter.redis "local_redis" {
     redis_addr = "localhost:6379"
 }
 
+prometheus.exporter.unix "localhost" { }
+
 // prometheus.scrape scrapes the targets that it is configured with and forwards
 // the metrics to other components (typically prometheus.relabel or prometheus.remote_write)
 prometheus.scrape "default" {
@@ -17,8 +19,7 @@ prometheus.scrape "default" {
     //
     // If you have more than one set of targets that you would like to scrape, you can use
     // the 'concat' function from the standard library to combine them.
-    targets = prometheus.exporter.redis.local_redis.targets
-
+    targets    = concat(prometheus.exporter.redis.local_redis.targets, prometheus.exporter.unix.targets)
     forward_to = [prometheus.remote_write.local_prom.receiver]
 }
 

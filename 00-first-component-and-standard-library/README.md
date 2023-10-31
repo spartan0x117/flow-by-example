@@ -1,4 +1,4 @@
-# First component(s) and the Standard Library
+# First component(s) and Introducing the Standard Library
 
 _This section covers the basics of the River language and the standard library. It then introduces a basic pipeline that collects metrics from the host and sends them to Prometheus._
 
@@ -17,7 +17,7 @@ _This section covers the basics of the River language and the standard library. 
     url = "http://localhost:9090"
     ```
 
-2. **Expressions**: Expressions are used to compute values. They can be constant values (e.g. `"localhost:9090"`) or they can be more complex (e.g. referencing a component's export: `prometheus.exporter.unix.targets`, a mathematical expression: `(1 + 2) * 3`, or a standard library function call: `env("HOME")`). We will cover more available expressions later.
+2. **Expressions**: Expressions are used to compute values. They can be constant values (e.g. `"localhost:9090"`) or they can be more complex (e.g. referencing a component's export: `prometheus.exporter.unix.targets`, a mathematical expression: `(1 + 2) * 3`, or a standard library function call: `env("HOME")`). We will use more expressions as we go along the examples. If you are curious, you can find a list of available standard library functions in the [Grafana Agent documentation](https://grafana.com/docs/agent/latest/flow/reference/stdlib/).
 
 3. **Blocks**: Blocks are used to configure components with groups of attributes or nested blocks. The following example block can be used to configure the logging output of a Grafana Agent in Flow mode:
 
@@ -120,6 +120,24 @@ And navigate to [http://localhost:3000/explore](http://localhost:3000/explore) i
 
 ![Memory usage](mem_usage.png)
 
+## Visualizing the Relationship Between Components
+
+```mermaid
+flowchart TD
+    prometheus.scrape[prometheus.scrape] --> |Scrape Targets| prometheus.exporter.unix[prometheus.exporter.unix]
+    prometheus.scrape --> |Forward Metrics| prometheus.remote_write
+```
+
+The above configuration defines three components:
+
+- `prometheus.scrape` - A component that scrapes metrics from components that export targets.
+- `prometheus.exporter.unix` - A component that exports metrics from the host, built around [node_exporter](https://github.com/prometheus/node_exporter).
+- `prometheus.remote_write` - A component that sends metrics to a Prometheus remote-write compatible endpoint.
+
+The `prometheus.scrape` component references the `prometheus.exporter.unix` component's targets export, which is a list of scrape targets. The `prometheus.scrape` component then forwards the scraped metrics to the `prometheus.remote_write` component.
+
+One rule is that components cannot form a cycle. This means that a component cannot reference itself, directly or indirectly. This is to prevent infinite loops from forming in the pipeline.
+
 ## Exercise for the reader
 
 ### Recommended Reading
@@ -129,16 +147,41 @@ And navigate to [http://localhost:3000/explore](http://localhost:3000/explore) i
 Let's start a container running Redis and configure the agent to scrape metrics from it.
 
 ```bash
-docker container run -d --name flow-redis -p 6379:6379 redis
+docker container run -d --name flow-redis -p 6379:6379 --rm redis
 ```
 
-Try modifying the above pipeline to scrape metrics from the Redis exporter. You can find the documentation for the `prometheus.exporter.redis` component [here](https://grafana.com/docs/agent/latest/flow/reference/components/prometheus.exporter.redis/).
+Try modifying the above pipeline to also scrape metrics from the Redis exporter. You can find the documentation for the `prometheus.exporter.redis` component [here](https://grafana.com/docs/agent/latest/flow/reference/components/prometheus.exporter.redis/).
+
+To give a visual hint, you want to create a pipeline that looks like this:
+
+```mermaid
+flowchart TD
+    prometheus.scrape[prometheus.scrape] --> |Scrape Targets| prometheus.exporter.redis[prometheus.exporter.redis]
+    prometheus.scrape --> |Scrape Targets| prometheus.exporter.unix
+    prometheus.scrape --> |Forward Metrics| prometheus.remote_write
+```
+
+_Hint: You may find the [concat](https://grafana.com/docs/agent/latest/flow/reference/stdlib/concat/) standard library function useful._
 
 If you get stuck, you can find the solution in [full-config.river](full-config.river).
 
+You can run the agent with the new config file by running:
+
+```bash
+/path/to/agent run config.river
+```
+
+And navigate to [http://localhost:3000/explore](http://localhost:3000/explore) in your browser. After the first scrape you should be able to query for `redis` metrics as well as `node` metrics!
+
+To shut down the Redis container, run:
+
+```bash
+docker container stop flow-redis
+```
+
 ## Finishing up and next steps
 
-You might have noticed that running the agent with the above configs created a directory called `data-agent` in the current directory. This directory is where components can store data, such as the `prometheus.exporter.unix` component storing its WAL (Write Ahead Log). If you look in the directory, do you notice anything interesting? The directory for each component is the fully-qualified name!
+You might have noticed that running the agent with the above configs created a directory called `data-agent` in the directory you ran the agent from. This directory is where components can store data, such as the `prometheus.exporter.unix` component storing its WAL (Write Ahead Log). If you look in the directory, do you notice anything interesting? The directory for each component is the fully-qualified name!
 
 If you'd like to store the data elsewhere, you can specify a different directory by supplying the `--storage.path` flag to the agent's run command, e.g. `/path/to/agent run config.river --storage.path /etc/grafana-agent`. Generally you will want to use a persistent directory for this, as some components may use the data stored in this directory to perform their function.
 
