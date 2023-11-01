@@ -125,6 +125,8 @@ If you are curious how the Agent keeps track of where in a log file it is, you c
 - [loki.relabel](https://grafana.com/docs/agent/latest/flow/reference/components/loki.relabel/)
 - [loki.process](https://grafana.com/docs/agent/latest/flow/reference/components/loki.process/)
 
+### Add a Label to Logs
+
 This exercise will have two parts, building on the previous example. Let's start by adding an `os` label (just like the Prometheus example) to all of the logs we are collecting.
 
 Modify the following snippet to add label `os` with the value of the `os` constant.
@@ -146,7 +148,7 @@ loki.write "local_loki" {
 }
 ```
 
-_**Hint**: The [loki.relabel](https://grafana.com/docs/agent/latest/flow/reference/components/loki.relabel) component can be used to extract labels from log lines._
+_**Hint**: The [loki.relabel](https://grafana.com/docs/agent/latest/flow/reference/components/loki.relabel) component can be used to relabel **or** add labels._
 
 Once you have your completed config, run the Agent and execute the following:
 
@@ -156,8 +158,52 @@ echo 'level=warn msg="WARN: This is a warn level log!"' >> /tmp/flow-logs/log.lo
 echo 'level=debug msg="DEBUG: This is a debug level log!"' >> /tmp/flow-logs/log.log
 ```
 
-Navigate to [localhost:3000/explore](http://localhost:3000/explore) and switch the Datasource to `Loki`. Try querying for `{filename="/tmp/flow-logs/log.log"}` and see if you can find the new label! You should see something like:
-
-![example_1](./images/example_1.png)
+Navigate to [localhost:3000/explore](http://localhost:3000/explore) and switch the Datasource to `Loki`. Try querying for `{filename="/tmp/flow-logs/log.log"}` and see if you can find the new label!
 
 Now that we have added new labels, we can also filter on them. Try querying for `{os!=""}`. You should only see the lines you added in the previous step.
+
+### Extract and add a Label from Logs
+
+This exercise will build on the previous one, though it's a bit more involved. Let's say we want to extract the `level` from the logs and add it as a label. To give a starting point, take a look at [loki.process](https://grafana.com/docs/agent/latest/flow/reference/components/loki.process/). This component allows you to perform processing on logs, including extracting values from logs.
+
+Building on the previous example, modify the following snippet to extract the `level` from the logs and add it as a label:
+
+```river
+local.file_match "tmplogs" {
+    path_targets = [{"__path__" = "/tmp/flow-logs/*.log"}]
+}
+
+loki.source.file "local_files" {
+    targets    = local.file_match.tmplogs.targets
+    forward_to = [loki.relabel.add_static_label.receiver]
+}
+
+loki.relabel "add_static_label" {
+    forward_to = [loki.write.local_loki.receiver]
+
+    rule {
+        target_label = "os"
+        replacement  = constants.os
+    }
+}
+
+loki.write "local_loki" {
+    endpoint {
+        url = "http://localhost:3100/loki/api/v1/push"
+    }
+}
+```
+
+**Hint**: _The `stage.logfmt` and `stage.labels` blocks for `loki.process` may be helpful._
+
+Once you have your completed config, run the Agent and execute the following:
+
+```bash
+echo 'level=info msg="INFO: This is an info level log!"' >> /tmp/flow-logs/log.log
+echo 'level=warn msg="WARN: This is a warn level log!"' >> /tmp/flow-logs/log.log
+echo 'level=debug msg="DEBUG: This is a debug level log!"' >> /tmp/flow-logs/log.log
+```
+
+Navigate to [localhost:3000/explore](http://localhost:3000/explore) and switch the Datasource to `Loki`. Try querying for `{level!=""}` to see the new labels in action!
+
+![example_log_lines](./images/log_level_labels.png)
