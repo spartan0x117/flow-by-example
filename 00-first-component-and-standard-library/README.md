@@ -53,7 +53,7 @@ Let's look at a simple example pipeline:
 
 ```river
 local.file "example" {
-    path = env("HOME") + "secret.txt"
+    path = env("HOME") + "file.txt"
 }
 
 prometheus.remote_write "local_prom" {
@@ -70,9 +70,14 @@ prometheus.remote_write "local_prom" {
 
 **Pro tip**: _A list of all available components can be found in the [Component Reference](https://grafana.com/docs/agent/latest/flow/reference/components/). Each component has a link to its documentation, which contains a description of what the component does, its arguments, its exports, and Example(s)._
 
-This pipeline has two components: `local.file` and `prometheus.remote_write`. The `local.file` component is configured with a single argument, `path`, which is set by calling the [env](https://grafana.com/docs/agent/latest/flow/reference/stdlib/env/) standard library function to retrieve the value of the `HOME` environment variable and concatenating it with the string `"secret.txt"`. The `local.file` component has a single export, `content`, which contains the contents of the file.
+This pipeline has two components: `local.file` and `prometheus.remote_write`. The `local.file` component is configured with a single argument, `path`, which is set by calling the [env](https://grafana.com/docs/agent/latest/flow/reference/stdlib/env/) standard library function to retrieve the value of the `HOME` environment variable and concatenating it with the string `"file.txt"`. The `local.file` component has a single export, `content`, which contains the contents of the file.
 
 The `prometheus.remote_write` component is configured with an `endpoint` block, which contains the `url` attribute and a `basic_auth` block. The `url` attribute is set to the URL of the Prometheus remote write endpoint. The `basic_auth` block contains the `username` and `password` attributes, which are set to the string `"admin"` and the `content` export of the `local.file` component, respectively. Note that the `content` export is referenced by using the syntax `local.file.example.content`, where `local.file.example` is the fully qualified name of the component (the component's type + it's label) and `content` is the name of the export.
+
+```mermaid
+flowchart TD
+    prometheus.remote_write[prometheus.remote_write] --> |Read local.file.content| local.file[local.file]
+```
 
 **Pro tip**: _The `local.file` component's label is set to `"example"`, so the fully qualified name of the component is `local.file.example`. The `prometheus.remote_write` component's label is set to `"local_prom"`, so the fully qualified name of the component is `prometheus.remote_write.local_prom`._
 
@@ -118,7 +123,7 @@ Run the agent with:
 
 And navigate to [http://localhost:3000/explore](http://localhost:3000/explore) in your browser. After ~15-20 seconds you should be able to see the metrics from the `prometheus.exporter.unix` component! Try querying for `node_memory_Active_bytes` to see the active memory of your host.
 
-![Memory usage](mem_usage.png)
+![Memory usage](./images/mem_usage.png)
 
 ## Visualizing the Relationship Between Components
 

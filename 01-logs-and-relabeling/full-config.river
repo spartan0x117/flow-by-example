@@ -1,1 +1,40 @@
-// Let's do some processing on metrics and logs!
+// Let's learn about relabeling and send logs to Loki!
+
+local.file_match "tmplogs" {
+    path_targets = [{"__path__" = "/tmp/flow-logs/*.log"}]
+}
+
+loki.source.file "local_files" {
+    targets    = local.file_match.tmplogs.targets
+    forward_to = [loki.process.add_new_label.receiver]
+}
+
+loki.process "add_new_label" {
+    stage.logfmt {
+        mapping = {
+            "extracted_level" = "level",
+        }
+    }
+    stage.labels {
+        values = {
+            "level" = "extracted_level",
+        }
+    }
+
+    forward_to = [loki.relabel.add_static_label.receiver]
+}
+
+loki.relabel "add_static_label" {
+    forward_to = [loki.write.local_loki.receiver]
+
+    rule {
+        target_label = "os"
+        replacement  = constants.os
+    }
+}
+
+loki.write "local_loki" {
+    endpoint {
+        url = "http://localhost:3100/loki/api/v1/push"
+    }
+}

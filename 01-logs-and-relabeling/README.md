@@ -114,4 +114,50 @@ echo "This is another log line!" >> /tmp/flow-logs/log.log
 
 to add some more logs to the file. If you re-execute the query, you should see the new log lines.
 
+![example_log_lines](./images/log_lines.png)
+
 If you are curious how the Agent keeps track of where in a log file it is, you can take a look at `data-agent/loki.source.file.local_files/positions.yml`. If you delete this file, the Agent will start reading from the beginning of the file again, which is why it is desirable to keep the Agent's data directory in a persistent location.
+
+## Exercise for the Reader
+
+### Recommended Reading
+
+- [loki.relabel](https://grafana.com/docs/agent/latest/flow/reference/components/loki.relabel/)
+- [loki.process](https://grafana.com/docs/agent/latest/flow/reference/components/loki.process/)
+
+This exercise will have two parts, building on the previous example. Let's start by adding an `os` label (just like the Prometheus example) to all of the logs we are collecting.
+
+Modify the following snippet to add label `os` with the value of the `os` constant.
+
+```river
+local.file_match "tmplogs" {
+    path_targets = [{"__path__" = "/tmp/flow-logs/*.log"}]
+}
+
+loki.source.file "local_files" {
+    targets    = local.file_match.tmplogs.targets
+    forward_to = [loki.write.local_loki.receiver]
+}
+
+loki.write "local_loki" {
+    endpoint {
+        url = "http://localhost:3100/loki/api/v1/push"
+    }
+}
+```
+
+_**Hint**: The [loki.relabel](https://grafana.com/docs/agent/latest/flow/reference/components/loki.relabel) component can be used to extract labels from log lines._
+
+Once you have your completed config, run the Agent and execute the following:
+
+```bash
+echo 'level=info msg="INFO: This is an info level log!"' >> /tmp/flow-logs/log.log
+echo 'level=warn msg="WARN: This is a warn level log!"' >> /tmp/flow-logs/log.log
+echo 'level=debug msg="DEBUG: This is a debug level log!"' >> /tmp/flow-logs/log.log
+```
+
+Navigate to [localhost:3000/explore](http://localhost:3000/explore) and switch the Datasource to `Loki`. Try querying for `{filename="/tmp/flow-logs/log.log"}` and see if you can find the new label! You should see something like:
+
+![example_1](./images/example_1.png)
+
+Now that we have added new labels, we can also filter on them. Try querying for `{os!=""}`. You should only see the lines you added in the previous step.
