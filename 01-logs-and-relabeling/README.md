@@ -164,6 +164,8 @@ Now that we have added new labels, we can also filter on them. Try querying for 
 
 ### Extract and add a Label from Logs
 
+_**NOTE**: This exercise is more challenging than the previous one. If you are having trouble, feel free to skip it and move to the next section, which will cover some of the concepts used here. You can always come back to this exercise later!_
+
 This exercise will build on the previous one, though it's a bit more involved. Let's say we want to extract the `level` from the logs and add it as a label. To give a starting point, take a look at [loki.process](https://grafana.com/docs/agent/latest/flow/reference/components/loki.process/). This component allows you to perform processing on logs, including extracting values from logs.
 
 Building on the previous example, modify the following snippet to extract the `level` from the logs and add it as a label:
@@ -207,3 +209,7 @@ echo 'level=debug msg="DEBUG: This is a debug level log!"' >> /tmp/flow-logs/log
 Navigate to [localhost:3000/explore](http://localhost:3000/explore) and switch the Datasource to `Loki`. Try querying for `{level!=""}` to see the new labels in action!
 
 ![example_log_lines](./images/log_level_labels.png)
+
+## Finishing up and next steps
+
+Hopefully by now the concepts of components, attributes, and expressions are starting to make sense. You have also seen how to use some of the standard library components to collect metrics and logs. In the next section, you will learn how to use the `loki.process` component to extract values from logs and use them!
