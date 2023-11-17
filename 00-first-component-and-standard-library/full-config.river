@@ -19,7 +19,7 @@ prometheus.scrape "default" {
     //
     // If you have more than one set of targets that you would like to scrape, you can use
     // the 'concat' function from the standard library to combine them.
-    targets    = concat(prometheus.exporter.redis.local_redis.targets, prometheus.exporter.unix.targets)
+    targets    = concat(prometheus.exporter.redis.local_redis.targets, prometheus.exporter.unix.localhost.targets)
     forward_to = [prometheus.remote_write.local_prom.receiver]
 }
 
