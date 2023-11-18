@@ -23,3 +23,7 @@ After running `docker-compose up`, open [http://localhost:3000](http://localhost
 The examples in this repository are designed to be followed in order. Examples generally build on each other, and each example contains a README that explains what it does and how it works. The examples are designed to be run locally, so you can follow along and experiment with them yourself.
 
 Each example's README will contain a list of Recommended Reading. These are links to documentation that will help you understand the concepts used in the example, and should be read in order. Some information may be included in the README as well, but the Recommended Reading will provide more detail.
+
+## Can I contribute?
+
+Absolutely! If there are topics you would like to see covered or if you see anything confusing or incorrect, please open an Issue! If you would like to correct something, feel free to open a PR or an Issue, whichever is easier for you.
