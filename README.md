@@ -1,5 +1,7 @@
 # flow-by-example
 
+**NOTE**: _These tutorials have been updated and now live in the [Grafana Alloy docs](https://grafana.com/docs/alloy/latest/tutorials/get-started/)!_
+
 ## Who is this for?
 
 This repository contains a collection of examples that build on each other to demonstrate how to configure and use the [Grafana Agent](https://grafana.com/docs/agent/latest/) in [Flow mode](https://grafana.com/docs/agent/latest/flow/). It assumes you have a basic understanding of what the Agent is and telemetry collection in general. It also assumes a base level of familiarity with Prometheus and PromQL, Loki and LogQL, and basic Grafana navigation. It assumes no knowledge of Flow or River concepts.
